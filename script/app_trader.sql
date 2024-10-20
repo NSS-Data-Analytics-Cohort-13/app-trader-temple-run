@@ -1,8 +1,8 @@
 
 
 	
--- -- (SELECT * FROM play_store_apps)
--- -- (SELECT * FROM app_store_apps)
+ (SELECT *  FROM play_store_apps)
+(SELECT * FROM app_store_apps)
 -- -- ---purchase price calculation
 -- -- WITH app_list as (
 -- -- 	(SELECT name, price, review_count:: int, rating, 'Apple' as store FROM app_store_apps)
@@ -105,45 +105,72 @@
 -- 	avg_rating DESC
 -- --LIMIT 10;
 
-
+---"Archangel Michael Guidance - Doreen Virtue"---
 ---TOP 10 LIST of Apps-----
 	
 	WITH Table_one AS (
-	SELECT name, MAX(price) as price,
-   COUNT(name)*5000 AS Revenue_permonth,
-   COUNT(DISTINCT name)*1000 as cost_PerMonth,
-   CAST((ROUND(AVG(rating)*2.0)/2.0)*2 +1 AS decimal(5,2)) as Life_yr
-   ,CASE WHEN COUNT(name) > 1 THEN 'y' ELSE 'n' END AS availableInBothStores
+	SELECT name
+	, MAX(price) as price--,content_rating
+   , COUNT(name)*5000 AS Revenue_permonth
+   , COUNT(DISTINCT name)*1000 as cost_PerMonth
+   , CAST((ROUND(AVG(rating)*2.0)/2.0)*2 +1 AS decimal(5,2)) as Life_yr
+   , CASE WHEN COUNT(name) > 1 THEN 'y' ELSE 'n' END AS availableInBothStores
+	--, store
+	--, genres
 	
-   FROM
-   (
-   SELECT name,
-   CASE WHEN price <= 1 THEN 10000 ELSE CEILING(price)*10000 END AS price,rating
+   FROM 
+   ( 
+   SELECT distinct name,
+   CASE WHEN price <= 1 THEN 10000 ELSE CEILING(price)*10000 END AS price,rating--,'appstore' as store--, content_rating, primary_genre as genres
    FROM app_store_apps
-	
+		
    UNION
 	
-  SELECT name,
-  CASE WHEN CAST(REPLACE(price,'$','') as numeric) = 0 THEN 10000 ELSE
-  CEILING(CAST(REPLACE(price,'$','') as numeric))*10000 END AS price, rating
-  FROM play_store_apps)
-  GROUP BY name
+  SELECT distinct name,
+  CASE WHEN CAST(REPLACE(price,'$','') as numeric) <= 1 THEN 10000 ELSE
+  CEILING(CAST(REPLACE(price,'$','') as numeric))*10000 END AS price, rating--, 'playstore' as store--, content_rating, genres
+  FROM play_store_apps
+ )
+  GROUP BY name--, store--, --content_rating,  genres
 ),
 
 Table_two AS (
 
-	SELECT name,price, life_yr, (revenue_permonth*12*life_yr) AS Total_revenue, (cost_permonth*12*life_yr) AS Total_cost, ((revenue_permonth*12*life_yr) - (cost_permonth*12*life_yr)) AS profit, availableInBothStores
+	SELECT 
+	 	name
+	 ,	price
+	 ,	life_yr
+	 --, content_rating
+	 ,	(revenue_permonth*12*life_yr):: money AS Total_revenue
+	 ,	((cost_permonth*12*life_yr)+price)::money AS Total_cost
+	 ,	(revenue_permonth*12*life_yr)::money - ((cost_permonth*12*life_yr)+price)::money AS profit, availableInBothStores
+	 --, store
+	 -- , genres
 
 FROM 	table_one
 	)
-SELECT * FROM Table_two
+	 	
+	 SELECT 
+	 distinct t.name
+	 ,	t.price
+	 ,	t.life_yr
+	 , p.content_rating
+	 ,	t. Total_revenue
+	 ,	t.Total_cost
+	 , t.profit
+	 , t. availableInBothStores
+	--, p.genres
+	 
+	 
+	 FROM Table_two as t
+	 inner join play_store_apps as p
+	on t.name = p.name
 	WHERE profit IS NOT NULL
-ORDER BY profit DESC
+	ORDER BY profit DESC
+	
 limit 10
 
 
-         
-         
-        
-         
+
+
     
